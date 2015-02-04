@@ -1,0 +1,14 @@
+{
+    "name": "littlegiant/silverstripe-singlepageadmin",
+    "type": "silverstripe-module",
+    "description": "Single page administration via a LeftAndMain like interface",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stevie Mayhew",
+            "email": "stevie@stevie.co.nz",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "dev"
+}
