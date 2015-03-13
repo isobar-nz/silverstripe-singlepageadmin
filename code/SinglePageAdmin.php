@@ -43,6 +43,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $treeClass = $this->config()->get('tree_class');
 
         $page = $treeClass::get()->first();
+        if (!$page || !$page->exists()) {
+            $currentStage = Versioned::current_stage();
+            Versioned::reading_stage('Stage');
+            $page = $treeClass::create();
+            $page->Title = $treeClass;
+            $page->write();
+            $page->doPublish();
+            Versioned::reading_stage($currentStage);
+        }
         $fields = $page->getCMSFields();
 
         $fields->push(new HiddenField('PreviewURL', 'Preview URL', RootURLController::get_homepage_link()));
