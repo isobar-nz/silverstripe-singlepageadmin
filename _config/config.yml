@@ -3,7 +3,7 @@ Name: catalog-manager
 After: 'framework/*','cms/*'
 ---
 
-SiteTree:
+SiteConfig:
   required_permission:
     - SITETREE_VIEW_ALL
     - SITETREE_EDIT_ALL
