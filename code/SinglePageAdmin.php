@@ -85,9 +85,27 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     }
 
+    /**
+     * Return the edit form
+     *
+     * @param null $request
+     * @return Form
+     */
     public function EditForm($request = null)
     {
         return $this->getEditForm();
+    }
+
+    /**
+     * This function is necessary for for some module functionality that relies on the controller having the current
+     * page ID implemented
+     *
+     * @return mixed
+     */
+    public function currentPageID()
+    {
+        $treeClass = $this->config()->get('tree_class');
+        return $treeClass::get()->first()->ID;
     }
 
     /**
