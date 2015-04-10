@@ -16,6 +16,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         'EditForm'
     );
 
+    /**
+     * Initialize requirements for this view
+     */
+    public function init()
+    {
+        parent::init();
+        Requirements::javascript(CMS_DIR . '/javascript/CMSMain.EditForm.js');
+    }
+
     public function canView($member = null)
     {
         return Permission::check("CMS_ACCESS_SinglePageAdmin");
