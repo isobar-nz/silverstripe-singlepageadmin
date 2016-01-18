@@ -32,7 +32,6 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     public function providePermissions()
     {
-
         return array(
             "CMS_ACCESS_SinglePageAdmin" => array(
                 'name' => "Access to Single Page Administration",
@@ -79,19 +78,24 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         )->setHTMLID('Form_EditForm');
         $form->setResponseNegotiator($this->getResponseNegotiator());
         $form->addExtraClass('cms-content center cms-edit-form');
-        if ($form->Fields()->hasTabset()) $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
+        if ($form->Fields()->hasTabset()) {
+            $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
+        }
         $form->setHTMLID('Form_EditForm');
         $form->loadDataFrom($page);
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 
         // Use <button> to allow full jQuery UI styling
         $actions = $actions->dataFields();
-        if ($actions) foreach ($actions as $action) $action->setUseButtonTag(true);
+        if ($actions) {
+            foreach ($actions as $action) {
+                $action->setUseButtonTag(true);
+            }
+        }
 
         $this->extend('updateEditForm', $form);
 
         return $form;
-
     }
 
     /**
@@ -145,7 +149,6 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function LinkPreview()
     {
-
         $treeClass = $this->config()->get('tree_class');
         $record = $treeClass::get()->first();
         $baseLink = ($record && $record instanceof Page) ? $record->Link('?stage=Stage') : Director::absoluteBaseURL();
@@ -269,5 +272,4 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
         Versioned::reading_stage($currentStage);
     }
-
 }
