@@ -9,9 +9,18 @@
 class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
 
+    /**
+     * @var string
+     */
     private static $url_rule = '/$Action/$ID/$OtherID';
+    /**
+     * @var string
+     */
     private static $menu_icon = 'silverstripe-singlepageadmin/images/singlepageadmin.png';
 
+    /**
+     * @var array
+     */
     private static $allowed_actions = array(
         'EditForm'
     );
@@ -25,20 +34,74 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Requirements::javascript(CMS_DIR . '/javascript/CMSMain.EditForm.js');
     }
 
+    /**
+     * @param null $member
+     * @return bool|int
+     */
     public function canView($member = null)
     {
+        if(!$member && $member !== false){
+            $member = Member::currentUser();
+        }
+
+        $codes = array();
+        $extraCodes = $this->stat('required_permission_codes');
+
+        if ($extraCodes !== false) { // allow explicit FALSE to disable subclass check
+            if ($extraCodes) {
+                $codes = array_merge($codes, (array)$extraCodes);
+            } else {
+                $codes[] = "CMS_ACCESS_$this->class";
+            }
+        }
+
+
+        foreach ($codes as $code) {
+            if (!Permission::checkMember($member, $code)) {
+                return false;
+            }
+        }
+
         return Permission::check("CMS_ACCESS_SinglePageAdmin");
     }
 
+    /**
+     * @return array
+     */
     public function providePermissions()
     {
-        return array(
+        $perms = array(
             "CMS_ACCESS_SinglePageAdmin" => array(
                 'name' => "Access to Single Page Administration",
                 'category' => 'CMS Access',
                 'help' => 'Allow use of Single Page Administration'
             )
         );
+
+        // Add any custom SinglePageAdmin subclasses.
+        foreach (ClassInfo::subclassesFor('SinglePageAdmin') as $i => $class) {
+
+            if ($class == 'SinglePageAdmin') {
+                continue;
+            }
+
+            if (ClassInfo::classImplements($class, 'TestOnly')) {
+                continue;
+            }
+
+            $title = _t("{$class}.MENUTITLE", LeftAndMain::menu_title_for_class($class));
+            $perms["CMS_ACCESS_" . $class] = array(
+                'name' => _t(
+                    'CMSMain.ACCESS',
+                    "Access to '{title}' section",
+                    "Item in permission selection identifying the admin section. Example: Access to 'Files & Images'",
+                    array('title' => $title)
+                ),
+                'category' => _t('Permission.CMS_ACCESS_CATEGORY', 'CMS Access')
+            );
+        }
+
+        return $perms;
     }
 
     /**
@@ -78,24 +141,19 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         )->setHTMLID('Form_EditForm');
         $form->setResponseNegotiator($this->getResponseNegotiator());
         $form->addExtraClass('cms-content center cms-edit-form');
-        if ($form->Fields()->hasTabset()) {
-            $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
-        }
+        if ($form->Fields()->hasTabset()) $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
         $form->setHTMLID('Form_EditForm');
         $form->loadDataFrom($page);
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 
         // Use <button> to allow full jQuery UI styling
         $actions = $actions->dataFields();
-        if ($actions) {
-            foreach ($actions as $action) {
-                $action->setUseButtonTag(true);
-            }
-        }
+        if ($actions) foreach ($actions as $action) $action->setUseButtonTag(true);
 
         $this->extend('updateEditForm', $form);
 
         return $form;
+
     }
 
     /**
@@ -149,6 +207,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function LinkPreview()
     {
+
         $treeClass = $this->config()->get('tree_class');
         $record = $treeClass::get()->first();
         $baseLink = ($record && $record instanceof Page) ? $record->Link('?stage=Stage') : Director::absoluteBaseURL();
@@ -195,11 +254,11 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             $form->sessionMessage($e->getResult()->message(), 'bad');
             $responseNegotiator = new PjaxResponseNegotiator(array(
                 'CurrentForm' => function () use (&$form) {
-                        return $form->forTemplate();
-                    },
+                    return $form->forTemplate();
+                },
                 'default' => function () use (&$controller) {
-                        return $controller->redirectBack();
-                    }
+                    return $controller->redirectBack();
+                }
             ));
             if ($controller->getRequest()->isAjax()) {
                 $controller->getRequest()->addHeader('X-Pjax', 'CurrentForm');
@@ -272,4 +331,5 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
         Versioned::reading_stage($currentStage);
     }
+
 }
