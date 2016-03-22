@@ -40,7 +40,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function canView($member = null)
     {
-        if(!$member && $member !== false){
+        if (!$member && $member !== false) {
             $member = Member::currentUser();
         }
 
@@ -141,19 +141,24 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         )->setHTMLID('Form_EditForm');
         $form->setResponseNegotiator($this->getResponseNegotiator());
         $form->addExtraClass('cms-content center cms-edit-form');
-        if ($form->Fields()->hasTabset()) $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
+        if ($form->Fields()->hasTabset()) {
+            $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
+        }
         $form->setHTMLID('Form_EditForm');
         $form->loadDataFrom($page);
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 
         // Use <button> to allow full jQuery UI styling
         $actions = $actions->dataFields();
-        if ($actions) foreach ($actions as $action) $action->setUseButtonTag(true);
+        if ($actions) {
+            foreach ($actions as $action) {
+                $action->setUseButtonTag(true);
+            }
+        }
 
         $this->extend('updateEditForm', $form);
 
         return $form;
-
     }
 
     /**
