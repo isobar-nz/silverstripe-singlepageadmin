@@ -24,14 +24,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     private static $allowed_actions = array(
         'EditForm'
     );
-    
+
     /**
-     * @config
-     * @var Array Codes which are required from the current user to view this controller.
      * If multiple codes are provided, all of them are required.
      * All CMS controllers require "CMS_ACCESS_LeftAndMain" as a baseline check,
      * and fall back to "CMS_ACCESS_<class>" if no permissions are defined here.
      * See {@link canView()} for more details on permission checks.
+     *
+     * @config
+     * @var Array Codes which are required from the current user to view this controller.
      */
     private static $required_permission_codes;
 
@@ -50,7 +51,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function canView($member = null)
     {
-        if (!$member && $member !== false) {
+        if(!$member && $member !== false){
             $member = Member::currentUser();
         }
 
@@ -72,7 +73,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             }
         }
 
-        return Permission::check("CMS_ACCESS_SinglePageAdmin");
+        return parent::canView($member);
     }
 
     /**
@@ -80,13 +81,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function providePermissions()
     {
-        $perms = array(
-            "CMS_ACCESS_SinglePageAdmin" => array(
-                'name' => "Access to Single Page Administration",
-                'category' => 'CMS Access',
-                'help' => 'Allow use of Single Page Administration'
-            )
-        );
+        $perms = array();
 
         // Add any custom SinglePageAdmin subclasses.
         foreach (ClassInfo::subclassesFor('SinglePageAdmin') as $i => $class) {
@@ -151,24 +146,19 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         )->setHTMLID('Form_EditForm');
         $form->setResponseNegotiator($this->getResponseNegotiator());
         $form->addExtraClass('cms-content center cms-edit-form');
-        if ($form->Fields()->hasTabset()) {
-            $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
-        }
+        if ($form->Fields()->hasTabset()) $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
         $form->setHTMLID('Form_EditForm');
         $form->loadDataFrom($page);
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 
         // Use <button> to allow full jQuery UI styling
         $actions = $actions->dataFields();
-        if ($actions) {
-            foreach ($actions as $action) {
-                $action->setUseButtonTag(true);
-            }
-        }
+        if ($actions) foreach ($actions as $action) $action->setUseButtonTag(true);
 
         $this->extend('updateEditForm', $form);
 
         return $form;
+
     }
 
     /**
