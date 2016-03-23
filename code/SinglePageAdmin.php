@@ -24,6 +24,16 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     private static $allowed_actions = array(
         'EditForm'
     );
+    
+    /**
+     * @config
+     * @var Array Codes which are required from the current user to view this controller.
+     * If multiple codes are provided, all of them are required.
+     * All CMS controllers require "CMS_ACCESS_LeftAndMain" as a baseline check,
+     * and fall back to "CMS_ACCESS_<class>" if no permissions are defined here.
+     * See {@link canView()} for more details on permission checks.
+     */
+    private static $required_permission_codes;
 
     /**
      * Initialize requirements for this view
