@@ -37,6 +37,13 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     private static $required_permission_codes;
 
     /**
+     * A cached reference to the page record
+     * @var SiteTree
+     */
+    protected $page;
+
+
+    /**
      * Initialize requirements for this view
      */
     public function init()
@@ -44,6 +51,34 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         parent::init();
         Requirements::javascript(CMS_DIR . '/javascript/CMSMain.EditForm.js');
     }
+
+    /**
+     * Helper function for getting the single page instance, existing or created
+     * @return SiteTree
+     */
+    protected function findOrMakePage()
+    {
+        if ($this->page) {
+            return $this->page;
+        }
+
+        $currentStage = Versioned::current_stage();
+        Versioned::reading_stage('Stage');
+
+        $treeClass = $this->config()->get('tree_class');
+        $page = $treeClass::get()->first();
+
+        if (!$page || !$page->exists()) {
+            $page = $treeClass::create();
+            $page->Title = $treeClass;
+            $page->write();
+            $page->doPublish();
+        }
+
+        Versioned::reading_stage($currentStage);
+
+        return $this->page = $page;
+    }    
 
     /**
      * @param null $member
@@ -116,46 +151,36 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function getEditForm($id = null, $fields = null)
     {
-        $treeClass = $this->config()->get('tree_class');
-
-        $page = $treeClass::get()->first();
-        if (!$page || !$page->exists()) {
-            $currentStage = Versioned::current_stage();
-            Versioned::reading_stage('Stage');
-            $page = $treeClass::create();
-            $page->Title = $treeClass;
-            $page->write();
-            $page->doPublish();
-            Versioned::reading_stage($currentStage);
-        }
+        $page = $this->findOrMakePage();
         $fields = $page->getCMSFields();
 
         $fields->push(new HiddenField('PreviewURL', 'Preview URL', RootURLController::get_homepage_link()));
         $fields->push($navField = new LiteralField('SilverStripeNavigator', $this->getSilverStripeNavigator()));
         $navField->setAllowHTML(true);
 
-        $actions = new FieldList();
-        $actions->push(
-            FormAction::create('doSave', 'Save')
-                ->setUseButtonTag(true)
-                ->addExtraClass('ss-ui-action-constructive')
-                ->setAttribute('data-icon', 'accept')
-        );
-        $form = CMSForm::create(
-            $this, 'EditForm', $fields, $actions
-        )->setHTMLID('Form_EditForm');
-        $form->setResponseNegotiator($this->getResponseNegotiator());
-        $form->addExtraClass('cms-content center cms-edit-form');
-        if ($form->Fields()->hasTabset()) $form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
-        $form->setHTMLID('Form_EditForm');
-        $form->loadDataFrom($page);
-        $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
+        $currentStage = Versioned::current_stage();
+        Versioned::reading_stage('Stage');
 
-        // Use <button> to allow full jQuery UI styling
-        $actions = $actions->dataFields();
-        if ($actions) foreach ($actions as $action) $action->setUseButtonTag(true);
+        $form = CMSForm::create(
+            $this, 
+            'EditForm', 
+            $fields, 
+            $this->getCMSActions()
+        )->setHTMLID('Form_EditForm');
+
+        if ($form->Fields()->hasTabset()) {
+        	$form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
+        }
+        $form
+        	->setResponseNegotiator($this->getResponseNegotiator())
+        	->addExtraClass('cms-content center cms-edit-form')
+			->setHTMLID('Form_EditForm')
+        	->loadDataFrom($page)
+        	->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 
         $this->extend('updateEditForm', $form);
+
+        Versioned::reading_stage($currentStage);
 
         return $form;
 
@@ -180,8 +205,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function currentPageID()
     {
-        $treeClass = $this->config()->get('tree_class');
-        return $treeClass::get()->first()->ID;
+        return $this->findOrMakePage()->ID;        
     }
 
     /**
@@ -212,26 +236,101 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function LinkPreview()
     {
-
-        $treeClass = $this->config()->get('tree_class');
-        $record = $treeClass::get()->first();
-        $baseLink = ($record && $record instanceof Page) ? $record->Link('?stage=Stage') : Director::absoluteBaseURL();
+    	$page = $this->findOrMakePage();
+        $baseLink = ($page && $page instanceof SiteTree) ? $page->Link('?stage=Stage') : Director::absoluteBaseURL();
         return $baseLink;
     }
 
     /**
      * @return FieldList
      */
-    public function getCMSActions()
+    protected function getCMSActions()
     {
-        $actions = new FieldList();
+        $page = $this->findOrMakePage();
+        $published = $page->isPublished();
+
+        $actions = FieldList::create();
         $actions->push(
-            FormAction::create('save_siteconfig', _t('CMSMain.SAVE', 'Save'))
-                ->addExtraClass('ss-ui-action-constructive')->setAttribute('data-icon', 'accept')
+            FormAction::create('save', _t('SiteTree.BUTTONSAVED', 'Saved'))
+                ->setAttribute('data-icon', 'accept')
+                ->setAttribute('data-icon-alternate', 'addpage')
+                ->setAttribute('data-text-alternate', _t('CMSMain.SAVEDRAFT', 'Save draft'))
+                ->setUseButtonTag(true)
         );
+
+        $publish = FormAction::create(
+            'publish',
+            $published ?
+                _t('SiteTree.BUTTONPUBLISHED', 'Published') :
+                _t('SiteTree.BUTTONSAVEPUBLISH', 'Save & publish')
+        )
+            ->setAttribute('data-icon', 'accept')
+            ->setAttribute('data-icon-alternate', 'disk')
+            ->setAttribute('data-text-alternate', _t('SiteTree.BUTTONSAVEPUBLISH', 'Save & publish'))
+            ->setUseButtonTag(true);
+
+        if ($page->stagesDiffer('Stage', 'Live') && $published) {
+            $publish->addExtraClass('ss-ui-alternate');
+            $actions->push(
+                FormAction::create(
+                    'rollback',
+                    _t(
+                        'SiteTree.BUTTONCANCELDRAFT',
+                        'Cancel draft changes'
+                    )
+                )
+                    ->setDescription(
+                        _t(
+                            'SiteTree.BUTTONCANCELDRAFTDESC',
+                            'Delete your draft and revert to the currently published page'
+                        )
+                    )
+                    ->setUseButtonTag(true)
+            );
+        }
+        $actions->push($publish);
+
+        if ($published) {
+            $actions->push(
+                FormAction::create(
+                    'unpublish',
+                    _t('SiteTree.BUTTONUNPUBLISH', 'Unpublish')
+                )
+                    ->addExtraClass('ss-ui-action-destructive')
+                    ->setUseButtonTag(true)
+            );
+        }
+
         $this->extend('updateCMSActions', $actions);
 
         return $actions;
+    }
+
+    /**
+     * @param $data
+     * @param $form
+     * @return HTMLText|SS_HTTPResponse|ViewableData_Customised
+     */
+    public function save($data, $form)
+    {
+        $currentStage = Versioned::current_stage();
+        Versioned::reading_stage('Stage');
+        $value = $this->doSave($data, $form);
+        Versioned::reading_stage($currentStage);
+
+        return $value;
+    }
+
+    /**
+     * @param $data
+     * @param $form
+     * @return HTMLText|SS_HTTPResponse|ViewableData_Customised
+     */
+    public function publish($data, $form)
+    {
+        $data['__publish__'] = true;
+
+        return $this->doSave($data, $form);
     }
 
     /**
@@ -241,13 +340,10 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function doSave($data, $form)
     {
-        $treeClass = $this->config()->get('tree_class');
-        $page = $treeClass::get()->first();
-
-        $currentStage = Versioned::current_stage();
-        Versioned::reading_stage('Stage');
-
+        $page = $this->findOrMakePage();
         $controller = Controller::curr();
+        $publish = isset($data['__publish__']);
+
         if (!$page->canEdit()) {
             return $controller->httpError(403);
         }
@@ -255,6 +351,9 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         try {
             $form->saveInto($page);
             $page->write();
+            if ($publish) {
+                $page->doPublish();
+            }
         } catch (ValidationException $e) {
             $form->sessionMessage($e->getResult()->message(), 'bad');
             $responseNegotiator = new PjaxResponseNegotiator(array(
@@ -271,17 +370,12 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             return $responseNegotiator->respond($controller->getRequest());
         }
 
-        Versioned::reading_stage($currentStage);
-        if ($page->isPublished()) {
-            $this->publish($data, $form);
-        }
-
         $link = '"' . $page->Title . '"';
         $message = _t(
-            'GridFieldDetailForm.Saved',
-            'Saved {name} {link}',
+            $publish ? 'SinglePageAdmin.Published' : 'GridFieldDetailForm.Saved',
+            ($publish ? 'Published' : 'Saved') . ' {name} {link}',
             array(
-                'name' => $page->Title,
+                'name' => $page->ClassName,
                 'link' => $link
             )
         );
@@ -291,6 +385,53 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
         return $action;
     }
+
+    /**
+     * @return HTMLText|ViewableData_Customised
+     */
+    public function unPublish()
+    {
+        $currentStage = Versioned::current_stage();
+        Versioned::reading_stage('Live');
+
+        $page = $this->findOrMakePage();
+
+        // This way our ID won't be unset
+        $clone = clone $page;
+        $clone->delete();
+
+        Versioned::reading_stage($currentStage);
+
+        return $this->edit(Controller::curr()->getRequest());
+    }
+
+    /**
+     * @param $data
+     * @param $form
+     * @return HTMLText|ViewableData_Customised
+     */
+    public function rollback($data, $form)
+    {
+        $page = $this->findOrMakePage();
+
+        if (!$page->canEdit()) {
+            return Controller::curr()->httpError(403);
+        }
+
+        $page->doRollbackTo('Live');
+
+        $this->page = DataList::create($page->class)->byID($page->ID);
+
+        $message = _t(
+            'CMSMain.ROLLEDBACKPUBv2',
+            "Rolled back to published version."
+        );
+
+        $form->sessionMessage($message, 'good');
+
+        return $this->owner->edit(Controller::curr()->getRequest());
+    }
+
 
     /**
      * @param $request
@@ -314,27 +455,5 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             ));
         }
     }
-
-    /**
-     * @param $data
-     * @param $form
-     */
-    private function publish($data, $form)
-    {
-        $currentStage = Versioned::current_stage();
-        Versioned::reading_stage('Stage');
-
-        $treeClass = $this->config()->get('tree_class');
-        $page = $treeClass::get()->first();
-
-        if ($page) {
-            $page->doPublish();
-            $form->sessionMessage($page->getTitle() . ' has been saved.', 'good');
-        } else {
-            $form->sessionMessage('Something failed, please refresh your browser.', 'bad');
-        }
-
-        Versioned::reading_stage($currentStage);
-    }
-
+    
 }
