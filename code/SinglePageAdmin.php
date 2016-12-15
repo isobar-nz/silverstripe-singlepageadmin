@@ -78,7 +78,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Versioned::reading_stage($currentStage);
 
         return $this->page = $page;
-    }    
+    }
 
     /**
      * @param null $member
@@ -162,11 +162,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Versioned::reading_stage('Stage');
 
         $form = CMSForm::create(
-            $this, 
-            'EditForm', 
-            $fields, 
+            $this,
+            'EditForm',
+            $fields,
             $this->getCMSActions()
         )->setHTMLID('Form_EditForm');
+
+        if ($page->hasMethod('getCMSValidator')) {
+            $form->setValidator($page->getCMSValidator());
+        }
 
         if ($form->Fields()->hasTabset()) {
         	$form->Fields()->findOrMakeTab('Root')->setTemplate('CMSTabSet');
@@ -205,7 +209,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function currentPageID()
     {
-        return $this->findOrMakePage()->ID;        
+        return $this->findOrMakePage()->ID;
     }
 
     /**
@@ -455,5 +459,5 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             ));
         }
     }
-    
+
 }
