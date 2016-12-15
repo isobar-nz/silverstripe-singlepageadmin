@@ -161,7 +161,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $currentStage = Versioned::current_stage();
         Versioned::reading_stage('Stage');
 
-        $form = CMSForm::create(
+        $form = SinglePageCMSForm::create(
             $this,
             'EditForm',
             $fields,
