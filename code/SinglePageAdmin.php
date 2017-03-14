@@ -379,7 +379,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             $publish ? 'SinglePageAdmin.Published' : 'GridFieldDetailForm.Saved',
             ($publish ? 'Published' : 'Saved') . ' {name} {link}',
             array(
-                'name' => $page->ClassName,
+                'name' => $page->i18n_singular_name(),
                 'link' => $link
             )
         );
