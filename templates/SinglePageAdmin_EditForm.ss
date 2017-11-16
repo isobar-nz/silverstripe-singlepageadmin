@@ -1,3 +1,4 @@
+<%--
 <form $FormAttributes data-layout-type="border">
     <div class="cms-content-fields center">
         <% if $Message %>
@@ -28,4 +29,6 @@
             </div>
         <% end_if %>
     </div>
-</form>
+</form>--%>
+
+<% include SilverStripe/Forms/Form %>

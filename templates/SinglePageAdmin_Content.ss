@@ -1,23 +1,54 @@
-<div id="settings-controller-cms-content" class="cms-content center cms-tabset $BaseCSSClasses" data-layout-type="border" data-pjax-fragment="Content CurrentForm" data-ignore-tab-state="true">
-    <div class="cms-content-header north">
-        <% with $EditForm %>
-            <div class="cms-content-header-info">
-                <% with $Controller %>
-                    <% include CMSBreadcrumbs %>
-                <% end_with %>
-            </div>
-            <% if $Fields.hasTabset %>
-                <% with $Fields.fieldByName('Root') %>
-                    <div class="cms-content-header-tabs cms-tabset-nav-primary ss-ui-tabs-nav">
-                        <ul class="cms-tabset-nav-primary">
-                            <% loop $Tabs %>
-                                <li<% if $extraClass %> class="$extraClass"<% end_if %>><a href="#$id">$Title</a></li>
-                            <% end_loop %>
-                        </ul>
-                    </div>
-                <% end_with %>
-            <% end_if %>
-        <% end_with %>
-    </div>
+<%--
+<div class="cms-content flexbox-area-grow $BaseCSSClasses" data-layout-type="border" data-pjax-fragment="Content">
+    $Tools
     $EditForm
+</div>
+--%>
+
+<div class="cms-content fill-height flexbox-area-grow cms-tabset center $BaseCSSClasses" data-layout-type="border" data-pjax-fragment="Content">
+
+    <div class="cms-content-header north">
+        <div class="cms-content-header-info vertical-align-items flexbox-area-grow">
+            <div class="breadcrumbs-wrapper">
+				<span class="cms-panel-link crumb last">
+                    <% if $SectionTitle %>
+                        $SectionTitle
+                    <% else %>
+                        <%t SilverStripe\Admin\ModelAdmin.Title 'Data Models' %>
+                    <% end_if %>
+                </span>
+            </div>
+        </div>
+
+        <div class="cms-content-header-tabs cms-tabset-nav-primary ss-ui-tabs-nav">
+            <% if $SearchForm %>
+                <button id="filters-button" class="btn btn-secondary btn--icon-large font-icon-search no-text" title="<%t SilverStripe\CMS\Controllers\CMSPagesController.FILTER 'Filter' %>"></button>
+            <% end_if %>
+            <ul class="cms-tabset-nav-primary">
+                <% loop $ManagedModelTabs %>
+                    <li class="tab-$ClassName $LinkOrCurrent<% if $LinkOrCurrent == 'current' %> ui-tabs-active<% end_if %>">
+                        <a href="$Link" class="cms-panel-link" title="$Title.ATT">$Title</a>
+                    </li>
+                <% end_loop %>
+            </ul>
+        </div>
+    </div>
+
+    <div class="cms-content-fields center ui-widget-content cms-panel-padded fill-height flexbox-area-grow" data-layout-type="border">
+        $Tools
+
+        <div class="cms-content-view">
+            <% if $SearchSummary %>
+                <p class="message notice">
+                    <a href="$Link" class="clear-search btn btn-notice font-icon-cancel">Clear search</a>
+                    Search results for
+                    <% loop $SearchSummary %>
+                        $Field<% if $Value %>: <strong>$Value</strong><% end_if %>
+                    <% end_loop %>
+                </p>
+            <% end_if %>
+            $EditForm
+        </div>
+    </div>
+
 </div>
