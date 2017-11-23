@@ -21,13 +21,13 @@ $ composer require littlegiant/silverstripe-singlepageadmin
 Simply extend the SinglePageAdmin class instead of ModelAdmin and include the class via the `tree_class` static.
 
 ```php
+use LittleGiant\SilverStripe\SinglePageAdmin\SinglePageAdmin;
 
 class HomePageAdmin extends SinglePageAdmin
 {
     private static $menu_title = "Home Page";
     private static $tree_class = 'HomePage';
     private static $url_segment = "home-page";
-
 }
 ```
 

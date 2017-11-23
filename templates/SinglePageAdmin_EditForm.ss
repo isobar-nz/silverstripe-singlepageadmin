@@ -1,31 +1,34 @@
-<form $FormAttributes data-layout-type="border">
-    <div class="cms-content-fields center">
+<% if $IncludeFormTag %>
+    <form $FormAttributes data-layout-type="border">
+<% end_if %>
+<% with $Controller %>
+    $EditFormTools
+<% end_with %>
+    <div class="panel panel--padded panel--scrollable flexbox-area-grow <% if not $Fields.hasTabset %>cms-panel-padded<% end_if %>">
         <% if $Message %>
             <p id="{$FormName}_error" class="message $MessageType">$Message</p>
         <% else %>
             <p id="{$FormName}_error" class="message $MessageType" style="display: none"></p>
         <% end_if %>
-
         <fieldset>
-            <% if $Legend %><legend>$Legend</legend><% end_if %>
+            <% if $Legend %>
+                <legend>$Legend</legend><% end_if %>
             <% loop $Fields %>
                 $FieldHolder
             <% end_loop %>
             <div class="clear"><!-- --></div>
         </fieldset>
     </div>
-    <div class="cms-content-actions cms-content-controls south">
+    <div class="toolbar--south cms-content-actions cms-content-controls south">
+        Foo Bar
         <% if $Actions %>
-            <div class="Actions">
+            <div class="btn-toolbar">
                 <% loop $Actions %>
-                    $Field
+                    $FieldHolder
                 <% end_loop %>
-                <% if $Controller.LinkPreview %>
-                    <a href="$Controller.LinkPreview" class="cms-preview-toggle-link ss-ui-button" data-icon="preview">
-                        <% _t('LeftAndMain.PreviewButton', 'Preview') %> &raquo;
-                    </a>
-                <% end_if %>
             </div>
         <% end_if %>
     </div>
-</form>
+<% if $IncludeFormTag %>
+    </form>
+<% end_if %>

@@ -1,5 +1,5 @@
-<div class="cms-navigator">
-    <a href="#" class="ss-ui-button cms-preview-toggle-link" data-icon="preview">
-        &laquo; <% _t('SilverStripeNavigator.Edit', 'Edit') %>
-    </a>
-</div>
+<%--<div class="cms-navigator">--%>
+<%--<a href="#" class="btn action btn-outline-secondary font-icon-edit-write">--%>
+<%--<%t SilverStripeNavigator.Edit 'Edit' %>--%>
+<%--</a>--%>
+<%--</div>--%>
