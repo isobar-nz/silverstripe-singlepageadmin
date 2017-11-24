@@ -5,6 +5,7 @@ namespace LittleGiant\SilverStripe\SinglePageAdmin;
 use SilverStripe\Admin\CMSMenu;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\CampaignAdmin\AddToCampaignHandler_FormAction;
+use SilverStripe\CMS\Controllers\CMSPageEditController;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
@@ -229,11 +230,8 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             $fields,
             $this->getCMSActions()
         )->setHTMLID('Form_EditForm');
-        $form->addExtraClass('cms-edit-form');
+        $form->addExtraClass('cms-edit-form fill-height flexbox-area-grow');
         $form->loadDataFrom($page);
-        /**
-         *
-         */
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
         $form->setAttribute('data-pjax-fragment', 'CurrentForm');
         $form->setValidationResponseCallback(function (ValidationResult $errors) use ($negotiator, $form) {
@@ -294,7 +292,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $neg = parent::getResponseNegotiator();
         $controller = $this;
         $neg->setCallback('CurrentForm', function () use (&$controller) {
-            return $controller->renderWith('LittleGiant\SilverStripeSinglePageAdmin\SinglePageAdmin_Content');
+            return $controller->renderWith($this->getTemplatesWithSuffix('_EditForm'));
         });
 
         return $neg;
@@ -439,60 +437,46 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     }
 
     /**
+     * @desc Save the page
      * @param $data
      * @param $form
-     * @return mixed
+     * @return mixed|HTTPResponse
      */
     public function doSave($data, $form)
     {
+        $request = $this->getRequest();
         $page = $this->findOrMakePage();
         $controller = Controller::curr();
         $publish = isset($data['__publish__']);
 
+        // If the user doesn't have permission to save then throw an error.
         if (!$page->canEdit()) {
-            return new HTTPResponse(403);
+            return new HTTPResponse('Permission Error', 403);
         }
 
-        try {
-            $form->saveInto($page);
-            $page->write();
-            if ($publish) {
-                $page->doPublish();
-            }
-        } catch (ValidationException $e) {
-            $form->sessionMessage($e->getResult()->message(), 'bad');
-            $responseNegotiator = new PjaxResponseNegotiator([
-                'CurrentForm' => function () use (&$form) {
-                    return $form->forTemplate();
-                },
-                'default'     => function () use (&$controller) {
-                    return $controller->redirectBack();
-                },
-            ]);
-            if ($controller->getRequest()->isAjax()) {
-                $controller->getRequest()->addHeader('X-Pjax', 'CurrentForm');
-            }
+        // save form data into record
+        $form->saveInto($page, true);
+        $page->write();
+        $this->extend('onAfterSave', $page);
 
-            return $responseNegotiator->respond($controller->getRequest());
+        // Set the response message
+        $message = _t(__CLASS__ . '.SAVEDUP', 'Saved.');
+        if ($this->getSchemaRequested()) {
+            $schemaId = Controller::join_links($this->Link('schema/DetailEditForm'), $id);
+            // Ensure that newly created records have all their data loaded back into the form.
+            $form->loadDataFrom($page);
+            $form->setMessage($message, 'good');
+            $response = $this->getSchemaResponse($schemaId, $form);
+        } else {
+            $response = $this->getResponseNegotiator()->respond($request);
         }
+        $response->addHeader('X-Status', rawurlencode($message));
 
-        $link = '"' . $page->Title . '"';
-        $message = _t(
-            $publish ? 'SinglePageAdmin.Published' : 'GridFieldDetailForm.Saved',
-            ($publish ? 'Published' : 'Saved') . ' {name} {link}',
-            [
-                'name' => $page->i18n_singular_name(),
-                'link' => $link,
-            ]
-        );
-
-        $form->sessionMessage($message, 'good');
-        $action = $this->edit(Controller::curr()->getRequest());
-
-        return $action;
+        return $this->edit(Controller::curr()->getRequest());;
     }
 
     /**
+     * @desc Unpublish the page
      * @return mixed
      */
     public function unPublish()
@@ -520,22 +504,46 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     {
         $page = $this->findOrMakePage();
 
-        if (!$page->canEdit()) {
-            return new HTTPResponse(403);
+        $page->extend('onBeforeRollback', $page->ID, $page->Version);
+
+        $id = (isset($page->ID)) ? (int)$page->ID : null;
+        $version = (isset($page->Version)) ? (int)$page->Version : null;
+
+        /** @var DataObject|Versioned $record */
+        $record = Versioned::get_latest_version($this->config()->get('tree_class'), $id);
+        if ($record && !$record->canEdit()) {
+            return Security::permissionFailure($this);
         }
 
-        $page->doRollbackTo('Live');
+        if ($version) {
+            $record->doRollbackTo($version);
+            $message = _t(
+                __CLASS__ . '.ROLLEDBACKVERSIONv2',
+                "Rolled back to version #{version}.",
+                ['version' => $page->Version]
+            );
+        } else {
+            $record->doRevertToLive();
+            $message = _t(
+                __CLASS__ . '.ROLLEDBACKPUBv2',
+                "Rolled back to published version."
+            );
+        }
 
-        $this->page = DataList::create($page->class)->byID($page->ID);
+        $this->getResponse()->addHeader('X-Status', rawurlencode($message));
 
-        $message = _t(
-            'CMSMain.ROLLEDBACKPUBv2',
-            "Rolled back to published version."
-        );
+        // Can be used in different contexts: In normal page edit view, in which case the redirect won't have any effect.
+        // Or in history view, in which case a revert causes the CMS to re-load the edit view.
+        // The X-Pjax header forces a "full" content refresh on redirect.
+        $url = Controller::join_links(CMSPageEditController::singleton()->Link('show'), $record->ID);
+        $this->getResponse()->addHeader('X-ControllerURL', $url);
+        $this->getRequest()->addHeader('X-Pjax', 'Content');
+        $this->getResponse()->addHeader('X-Pjax', 'Content');
 
-        $form->sessionMessage($message, 'good');
-
-        return $this->owner->edit(Controller::curr()->getRequest());
+        /**
+         * @TODO: Redirect the user back to the single page admin page. - Ryan Potter 24/11/17
+         */
+        return $this->getResponseNegotiator()->respond($this->getRequest());
     }
 
 
