@@ -5,6 +5,7 @@ namespace LittleGiant\SilverStripe\SinglePageAdmin;
 use SilverStripe\Admin\CMSMenu;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\CampaignAdmin\AddToCampaignHandler_FormAction;
+use SilverStripe\CMS\Controllers\CMSMain;
 use SilverStripe\CMS\Controllers\CMSPageEditController;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
@@ -431,7 +432,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function publish($data, $form)
     {
-        $data['__publish__'] = true;
+        $data['__publish__'] = '1';
 
         return $this->doSave($data, $form);
     }
@@ -445,13 +446,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function doSave($data, $form)
     {
         $request = $this->getRequest();
+
         $page = $this->findOrMakePage();
         $controller = Controller::curr();
         $publish = isset($data['__publish__']);
 
-        // If the user doesn't have permission to save then throw an error.
-        if (!$page->canEdit()) {
-            return new HTTPResponse('Permission Error', 403);
+        // Check publishing permissions
+        $doPublish = !empty($publish);
+        if ($page && $doPublish && !$page->canPublish()) {
+            return Security::permissionFailure($this);
         }
 
         // save form data into record
@@ -460,19 +463,25 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $this->extend('onAfterSave', $page);
 
         // Set the response message
-        $message = _t(__CLASS__ . '.SAVEDUP', 'Saved.');
-        if ($this->getSchemaRequested()) {
-            $schemaId = Controller::join_links($this->Link('schema/DetailEditForm'), $id);
-            // Ensure that newly created records have all their data loaded back into the form.
-            $form->loadDataFrom($page);
-            $form->setMessage($message, 'good');
-            $response = $this->getSchemaResponse($schemaId, $form);
+        // If the 'Save & Publish' button was clicked, also publish the page
+        if ($doPublish) {
+            $page->publishRecursive();
+            $message = _t(
+                'SilverStripe\\CMS\\Controllers\\CMSMain.PUBLISHED',
+                "Published '{title}' successfully.",
+                ['title' => $page->Title]
+            );
         } else {
-            $response = $this->getResponseNegotiator()->respond($request);
+            $message = _t(
+                'SilverStripe\\CMS\\Controllers\\CMSMain.SAVED',
+                "Saved '{title}' successfully.",
+                ['title' => $page->Title]
+            );
         }
-        $response->addHeader('X-Status', rawurlencode($message));
 
-        return $this->edit(Controller::curr()->getRequest());;
+        $this->getResponse()->addHeader('X-Status', rawurlencode($message));
+
+        return $this->edit($controller->getRequest());
     }
 
     /**
@@ -504,7 +513,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     {
         $page = $this->findOrMakePage();
 
-        $page->extend('onBeforeRollback', $page->ID, $page->Version);
+//        $page->extend('onBeforeRollback', $page->ID, $page->Version);
 
         $id = (isset($page->ID)) ? (int)$page->ID : null;
         $version = (isset($page->Version)) ? (int)$page->Version : null;
@@ -535,14 +544,11 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         // Can be used in different contexts: In normal page edit view, in which case the redirect won't have any effect.
         // Or in history view, in which case a revert causes the CMS to re-load the edit view.
         // The X-Pjax header forces a "full" content refresh on redirect.
-        $url = Controller::join_links(CMSPageEditController::singleton()->Link('show'), $record->ID);
-        $this->getResponse()->addHeader('X-ControllerURL', $url);
+        $url = Controller::curr()->getRequest();
+        $this->getResponse()->addHeader('X-ControllerURL', $url->getURL()); // @TODO: Redirect to the base url of the form - 24/11/17 Ryan Potter
         $this->getRequest()->addHeader('X-Pjax', 'Content');
         $this->getResponse()->addHeader('X-Pjax', 'Content');
 
-        /**
-         * @TODO: Redirect the user back to the single page admin page. - Ryan Potter 24/11/17
-         */
         return $this->getResponseNegotiator()->respond($this->getRequest());
     }
 
@@ -559,7 +565,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $return = $this->customise([
             'Backlink' => $controller->hasMethod('Backlink') ? $controller->Backlink() : $controller->Link(),
             'EditForm' => $form,
-        ])->renderWith('SinglePageAdmin_Content');
+        ])->renderWith($this->getTemplatesWithSuffix('_Content'));
 
         if ($request->isAjax()) {
             return $return;
