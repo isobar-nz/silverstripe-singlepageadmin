@@ -38,7 +38,11 @@ use SilverStripe\Control\HTTPResponse;
 class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
     /**
-     * @var string
+     * As of 4.0 all subclasses of LeftAndMain have to have a
+     * $url_segment as a result of this, we need to hide the
+     * item from the cms menu.
+     *
+     * @TODO: Figure out a way to hide the menu item - Ryan Potter 24/11/17
      */
     private static $url_segment = 'little-giant/single-page-admin';
 
@@ -94,15 +98,6 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Requirements::javascript('silverstripe/cms: client/dist/js/SilverStripeNavigator.js');
         Requirements::css('silverstripe/cms: client/dist/styles/bundle.css');
         Requirements::add_i18n_javascript('silverstripe/cms: client/lang', false, true);
-
-        /**
-         * As of 4.0 all subclasses of LeftAndMain have to have a
-         * $url_segment as a result of this, we need to hide the
-         * item from the cms menu.
-         *
-         * @TODO: Check if there's a better way of getting around adding a $url_segment - Ryan Potter 24/11/17
-         */
-        CMSMenu::remove_menu_item('LittleGiant-SilverStripe-SinglePageAdmin-SinglePageAdmin');
     }
 
     /**
@@ -236,6 +231,9 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         )->setHTMLID('Form_EditForm');
         $form->addExtraClass('cms-edit-form');
         $form->loadDataFrom($page);
+        /**
+         *
+         */
         $form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
         $form->setAttribute('data-pjax-fragment', 'CurrentForm');
         $form->setValidationResponseCallback(function (ValidationResult $errors) use ($negotiator, $form) {

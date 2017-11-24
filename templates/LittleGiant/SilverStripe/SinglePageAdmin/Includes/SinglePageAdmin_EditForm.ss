@@ -20,7 +20,6 @@
         </fieldset>
     </div>
     <div class="toolbar--south cms-content-actions cms-content-controls south">
-        Foo Bar
         <% if $Actions %>
             <div class="btn-toolbar">
                 <% loop $Actions %>
