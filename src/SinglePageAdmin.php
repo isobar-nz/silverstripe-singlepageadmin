@@ -31,8 +31,17 @@ use SilverStripe\Control\HTTPResponse;
  * @package SinglePageAdmin
  * @author Stevie Mayhew
  */
-abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
+class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
+    /**
+     * As of 4.0 all subclasses of LeftAndMain have to have a
+     * $url_segment as a result of this, we need to hide the
+     * item from the cms menu.
+     *
+     * @TODO: Figure out a way to hide the menu item - Ryan Potter 24/11/17
+     */
+    private static $url_segment = 'little-giant/single-page-admin';
+
     /**
      * @var string
      */
