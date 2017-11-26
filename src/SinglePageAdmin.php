@@ -2,16 +2,12 @@
 
 namespace LittleGiant\SilverStripe\SinglePageAdmin;
 
-use SilverStripe\Admin\CMSMenu;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\CampaignAdmin\AddToCampaignHandler_FormAction;
-use SilverStripe\CMS\Controllers\CMSMain;
-use SilverStripe\CMS\Controllers\CMSPageEditController;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
-use SilverStripe\Control\PjaxResponseNegotiator;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
@@ -20,8 +16,6 @@ use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\TabSet;
-use SilverStripe\ORM\DataList;
-use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\ValidationResult;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
@@ -37,17 +31,8 @@ use SilverStripe\Control\HTTPResponse;
  * @package SinglePageAdmin
  * @author Stevie Mayhew
  */
-class SinglePageAdmin extends LeftAndMain implements PermissionProvider
+abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
-    /**
-     * As of 4.0 all subclasses of LeftAndMain have to have a
-     * $url_segment as a result of this, we need to hide the
-     * item from the cms menu.
-     *
-     * @TODO: Figure out a way to hide the menu item - Ryan Potter 24/11/17
-     */
-    private static $url_segment = 'little-giant/single-page-admin';
-
     /**
      * @var string
      */
