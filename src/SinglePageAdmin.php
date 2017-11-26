@@ -17,7 +17,6 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\TabSet;
 use SilverStripe\ORM\ValidationResult;
-use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
@@ -131,17 +130,18 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function canView($member = null)
     {
         if (!$member && $member !== false) {
-            $member = Member::currentUser();
+            $member = Security::getCurrentUser();
         }
 
         $codes = [];
-        $extraCodes = $this->stat('required_permission_codes');
+        $extraCodes = $this->config()->get('required_permission_codes');
 
         if ($extraCodes !== false) { // allow explicit FALSE to disable subclass check
             if ($extraCodes) {
                 $codes = array_merge($codes, (array)$extraCodes);
             } else {
-                $codes[] = "CMS_ACCESS_$this->class";
+                $class = static::class;
+                $codes[] = "CMS_ACCESS_$class";
             }
         }
 
