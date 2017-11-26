@@ -163,9 +163,9 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $perms = [];
 
         // Add any custom SinglePageAdmin subclasses.
-        foreach (ClassInfo::subclassesFor('SinglePageAdmin') as $i => $class) {
+        foreach (ClassInfo::subclassesFor(SinglePageAdmin::class) as $i => $class) {
 
-            if ($class == 'SinglePageAdmin') {
+            if ($class == SinglePageAdmin::class) {
                 continue;
             }
 
@@ -173,7 +173,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
                 continue;
             }
 
-            $title = _t("{$class}.MENUTITLE", LeftAndMain::menu_title_for_class($class));
+            $title = _t("{$class}.MENUTITLE", LeftAndMain::menu_title($class));
             $perms["CMS_ACCESS_" . $class] = [
                 'name'     => _t(
                     'CMSMain.ACCESS',
