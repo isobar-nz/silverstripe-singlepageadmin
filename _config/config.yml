@@ -1,5 +1,5 @@
 ---
-Name: catalog-manager
+Name: singlepageadmin
 ---
 SilverStripe\SiteConfig\SiteConfig:
   required_permission:

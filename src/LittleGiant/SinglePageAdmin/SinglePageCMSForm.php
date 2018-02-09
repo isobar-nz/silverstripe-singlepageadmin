@@ -1,6 +1,6 @@
 <?php
 
-namespace LittleGiant\SilverStripe\SinglePageAdmin;
+namespace LittleGiant\SinglePageAdmin;
 
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\Form;

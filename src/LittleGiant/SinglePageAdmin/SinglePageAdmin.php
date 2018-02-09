@@ -1,6 +1,6 @@
 <?php
 
-namespace LittleGiant\SilverStripe\SinglePageAdmin;
+namespace LittleGiant\SinglePageAdmin;
 
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\CampaignAdmin\AddToCampaignHandler_FormAction;
@@ -30,14 +30,12 @@ use SilverStripe\Control\HTTPResponse;
  * @package SinglePageAdmin
  * @author Stevie Mayhew
  */
-class SinglePageAdmin extends LeftAndMain implements PermissionProvider
+abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
     /**
      * As of 4.0 all subclasses of LeftAndMain have to have a
      * $url_segment as a result of this, we need to hide the
-     * item from the cms menu.
-     *
-     * @TODO: Figure out a way to hide the menu item - Ryan Potter 24/11/17
+     * item from the cms menu
      */
     private static $url_segment = 'little-giant/single-page-admin';
 
@@ -272,11 +270,11 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @desc Used for preview controls, mainly links which switch between different states of the page.
-     * @return \SilverStripe\ORM\FieldType\DBHTMLText
+     * @return bool
      */
     public function getSilverStripeNavigator()
     {
-        return $this->renderWith('SinglePageAdmin_SilverStripeNavigator');
+        return false;
     }
 
     /**
@@ -287,6 +285,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $neg = parent::getResponseNegotiator();
         $controller = $this;
         $neg->setCallback('CurrentForm', function () use (&$controller) {
+            error_log($controller->renderWith($this->getTemplatesWithSuffix('_EditForm')));
             return $controller->renderWith($this->getTemplatesWithSuffix('_EditForm'));
         });
 
@@ -306,7 +305,6 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @return FieldList
-     * @TODO: classes
      */
     protected function getCMSActions()
     {
@@ -439,8 +437,6 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     public function doSave($data, $form)
     {
-        $request = $this->getRequest();
-
         $page = $this->findOrMakePage();
         $controller = Controller::curr();
         $publish = isset($data['__publish__']);
@@ -507,7 +503,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     {
         $page = $this->findOrMakePage();
 
-//        $page->extend('onBeforeRollback', $page->ID, $page->Version);
+        $page->extend('onBeforeRollback', $page->ID, $page->Version);
 
         $id = (isset($page->ID)) ? (int)$page->ID : null;
         $version = (isset($page->Version)) ? (int)$page->Version : null;
