@@ -30,7 +30,7 @@ use SilverStripe\Control\HTTPResponse;
  * @package SinglePageAdmin
  * @author Stevie Mayhew
  */
-abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
+class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
     /**
      * As of 4.0 all subclasses of LeftAndMain have to have a
