@@ -106,9 +106,9 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $currentStage = Versioned::get_stage();
         Versioned::set_stage(Versioned::DRAFT);
 
+        /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
         $treeClass = $this->config()->get('tree_class');
 
-        /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
         /** @var \SilverStripe\CMS\Model\SiteTree|null $page */
         $page = $treeClass::get()->first();
 
