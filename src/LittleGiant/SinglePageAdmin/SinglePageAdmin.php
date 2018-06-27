@@ -8,7 +8,9 @@ use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\ClassInfo;
+use SilverStripe\Dev\TestOnly;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormAction;
@@ -22,7 +24,6 @@ use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
 use SilverStripe\Versioned\Versioned;
 use SilverStripe\View\Requirements;
-use SilverStripe\Control\HTTPResponse;
 
 /**
  * Defines the Single Page Administration interface for the CMS
@@ -162,12 +163,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
         // Add any custom SinglePageAdmin subclasses.
         foreach (ClassInfo::subclassesFor(SinglePageAdmin::class) as $i => $class) {
-
-            if ($class == SinglePageAdmin::class) {
-                continue;
-            }
-
-            if (ClassInfo::classImplements($class, 'TestOnly')) {
+            if ($class === SinglePageAdmin::class || ClassInfo::classImplements($class, TestOnly::class)) {
                 continue;
             }
 
