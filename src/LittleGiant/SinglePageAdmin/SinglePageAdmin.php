@@ -8,7 +8,9 @@ use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\ClassInfo;
+use SilverStripe\Dev\TestOnly;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormAction;
@@ -22,7 +24,6 @@ use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
 use SilverStripe\Versioned\Versioned;
 use SilverStripe\View\Requirements;
-use SilverStripe\Control\HTTPResponse;
 
 /**
  * Defines the Single Page Administration interface for the CMS
@@ -30,7 +31,7 @@ use SilverStripe\Control\HTTPResponse;
  * @package SinglePageAdmin
  * @author Stevie Mayhew
  */
-class SinglePageAdmin extends LeftAndMain implements PermissionProvider
+abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 {
     /**
      * As of 4.0 all subclasses of LeftAndMain have to have a
@@ -77,8 +78,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      * A cached reference to the page record
      * @var SiteTree
      */
-    protected $page;
-
+    protected $page = null;
 
     /**
      * Initialize requirements for this view
@@ -99,26 +99,33 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     protected function findOrMakePage()
     {
-        if ($this->page) {
+        if ($this->page !== null) {
             return $this->page;
         }
 
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
 
+        /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
         $treeClass = $this->config()->get('tree_class');
+
+        /** @var \SilverStripe\CMS\Model\SiteTree|null $page */
         $page = $treeClass::get()->first();
 
-        if (!$page || !$page->exists()) {
+        if ($page === null) {
             $page = $treeClass::create();
-            $page->Title = $treeClass;
+
+            if (empty($page->Title)) {
+                $page->Title = str_replace('Page', '', ClassInfo::shortName($treeClass));
+            }
+
             $page->write();
-            $page->doPublish();
         }
 
         Versioned::set_stage($currentStage);
 
-        return $this->page = $page;
+        $this->page = $page;
+        return $page;
     }
 
     /**
@@ -162,12 +169,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
         // Add any custom SinglePageAdmin subclasses.
         foreach (ClassInfo::subclassesFor(SinglePageAdmin::class) as $i => $class) {
-
-            if ($class == SinglePageAdmin::class) {
-                continue;
-            }
-
-            if (ClassInfo::classImplements($class, 'TestOnly')) {
+            if ($class === SinglePageAdmin::class || ClassInfo::classImplements($class, TestOnly::class)) {
                 continue;
             }
 
@@ -201,7 +203,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $navField->setAllowHTML(true);
 
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
 
         // Check record exists
         if (!$page) {
@@ -410,7 +412,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function save($data, $form)
     {
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
         $value = $this->doSave($data, $form);
         Versioned::set_stage($currentStage);
 
@@ -481,7 +483,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function unPublish()
     {
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Live');
+        Versioned::set_stage(Versioned::LIVE);
 
         $page = $this->findOrMakePage();
 
