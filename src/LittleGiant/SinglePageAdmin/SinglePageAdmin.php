@@ -120,7 +120,6 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             }
 
             $page->write();
-            $page->publishRecursive();
         }
 
         Versioned::set_stage($currentStage);
