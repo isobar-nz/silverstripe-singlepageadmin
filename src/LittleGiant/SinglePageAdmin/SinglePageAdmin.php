@@ -115,6 +115,8 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         if ($page === null) {
             $page = $treeClass::create();
             $page->Title = $treeClass;
+            $page->populateDefaults();
+
             $page->write();
             $page->publishRecursive();
         }
