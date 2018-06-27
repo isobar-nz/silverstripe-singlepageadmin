@@ -15,5 +15,8 @@
             "role": "Developer"
         }
     ],
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "require": {
+        "silverstripe/cms": "^4.0"
+    }
 }
