@@ -78,8 +78,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      * A cached reference to the page record
      * @var SiteTree
      */
-    protected $page;
-
+    protected $page = null;
 
     /**
      * Initialize requirements for this view
@@ -100,7 +99,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      */
     protected function findOrMakePage()
     {
-        if ($this->page) {
+        if ($this->page !== null) {
             return $this->page;
         }
 
@@ -108,18 +107,22 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Versioned::set_stage(Versioned::DRAFT);
 
         $treeClass = $this->config()->get('tree_class');
+
+        /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
+        /** @var \SilverStripe\CMS\Model\SiteTree|null $page */
         $page = $treeClass::get()->first();
 
-        if (!$page || !$page->exists()) {
+        if ($page === null) {
             $page = $treeClass::create();
             $page->Title = $treeClass;
             $page->write();
-            $page->doPublish();
+            $page->publishRecursive();
         }
 
         Versioned::set_stage($currentStage);
 
-        return $this->page = $page;
+        $this->page = $page;
+        return $page;
     }
 
     /**
