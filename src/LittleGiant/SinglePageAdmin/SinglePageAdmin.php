@@ -105,7 +105,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         }
 
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
 
         $treeClass = $this->config()->get('tree_class');
         $page = $treeClass::get()->first();
@@ -197,7 +197,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         $navField->setAllowHTML(true);
 
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
 
         // Check record exists
         if (!$page) {
@@ -406,7 +406,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function save($data, $form)
     {
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Stage');
+        Versioned::set_stage(Versioned::DRAFT);
         $value = $this->doSave($data, $form);
         Versioned::set_stage($currentStage);
 
@@ -477,7 +477,7 @@ abstract class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     public function unPublish()
     {
         $currentStage = Versioned::get_stage();
-        Versioned::set_stage('Live');
+        Versioned::set_stage(Versioned::LIVE);
 
         $page = $this->findOrMakePage();
 
