@@ -568,4 +568,11 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         }
     }
 
+    /**
+     * @return string
+     */
+    public function Backlink()
+    {
+        return $this->Link();
+    }
 }
