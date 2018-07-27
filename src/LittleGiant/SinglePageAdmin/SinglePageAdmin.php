@@ -18,6 +18,7 @@ use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\TabSet;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\ValidationResult;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
@@ -61,6 +62,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     private static $allowed_actions = [
         'EditForm',
     ];
+
+    /**
+     * It may be desirable to have subclasses of the "single page", but pick up the declared tree_class in the single
+     * page admin as the page instance to be edited. This is probably the desired behaviour by default, but is defaulted
+     * to false to prevent a breaking change to existing code.
+     * @config
+     * @var bool
+     */
+    private static $ignore_tree_class_subclasses = false;
 
     /**
      * Codes which are required from the current user to view this controller.
@@ -107,10 +117,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         Versioned::set_stage(Versioned::DRAFT);
 
         /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
-        $treeClass = $this->config()->get('tree_class');
+        $treeClass = static::config()->get('tree_class');
+        $treeObjects = DataObject::get($treeClass);
+        
+        if (static::config()->get('ignore_tree_class_subclasses')) {
+            $treeObjects = $treeObjects->filter('ClassName', $treeClass);
+        }
 
         /** @var \SilverStripe\CMS\Model\SiteTree|null $page */
-        $page = $treeClass::get()->first();
+        $page = $treeObjects->first();
 
         if ($page === null) {
             $page = $treeClass::create();
