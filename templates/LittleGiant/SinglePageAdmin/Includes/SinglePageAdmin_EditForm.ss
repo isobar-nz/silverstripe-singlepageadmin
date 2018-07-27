@@ -10,21 +10,7 @@
         <fieldset>
             <% if $Legend %><legend>$Legend</legend><% end_if %>
             <% loop $Fields %>
-                <% if $Tabs %>
-                    <% loop $Tabs %>
-                        <% if $Tabs %>
-                            $FieldHolder
-                        <% else %>
-                            <div $AttributesHTML>
-                                <% loop $Fields %>
-                                    $FieldHolder
-                                <% end_loop %>
-                            </div>
-                        <% end_if %>
-                    <% end_loop %>
-                <% else %>
-                    $FieldHolder
-                <% end_if %>
+                $FieldHolder
             <% end_loop %>
             <div class="clear"><!-- --></div>
         </fieldset>
@@ -34,7 +20,7 @@
         <% if $Actions %>
             <div class="btn-toolbar">
                 <% loop $Actions %>
-                    $Field
+                    $FieldHolder
                 <% end_loop %>
                 <% if $Controller.LinkPreview %>
                     <a href="$Controller.LinkPreview" class="cms-preview-toggle-link ss-ui-button" data-icon="preview">
