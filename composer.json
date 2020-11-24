@@ -13,6 +13,11 @@
             "name": "Ryan Potter",
             "email": "ryan.potter@littlegiant.co.nz",
             "role": "Developer"
+        },
+        {
+            "name": "Damian Mooyman",
+            "email": "damian.mooyman@isobar.com",
+            "role": "Developer"
         }
     ],
     "minimum-stability": "dev",
