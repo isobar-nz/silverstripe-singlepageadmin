@@ -9,10 +9,12 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\PjaxResponseNegotiator;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\LiteralField;
@@ -119,7 +121,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
         /** @var \SilverStripe\CMS\Model\SiteTree $treeClass */
         $treeClass = static::config()->get('tree_class');
         $treeObjects = DataObject::get($treeClass);
-        
+
         if (static::config()->get('ignore_tree_class_subclasses')) {
             $treeObjects = $treeObjects->filter('ClassName', $treeClass);
         }
@@ -206,7 +208,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     /**
      * @param null $id
      * @param null $fields
-     * @return $this|null|\SilverStripe\Forms\Form
+     * @return $this|null|Form
      */
     public function getEditForm($id = null, $fields = null)
     {
@@ -269,7 +271,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @param null $request
-     * @return null|\SilverStripe\Forms\Form|SinglePageAdmin
+     * @return null|Form|SinglePageAdmin
      */
     public function EditForm($request = null)
     {
@@ -289,7 +291,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
      * @desc Used for preview controls, mainly links which switch between different states of the page.
      * @return bool
      */
-    public function getSilverStripeNavigator()
+    public function getSilverStripeNavigator(?DataObject $record = null)
     {
         return false;
     }
@@ -297,7 +299,7 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
     /**
      * @return mixed
      */
-    public function getResponseNegotiator()
+    public function getResponseNegotiator(): PjaxResponseNegotiator
     {
         $neg = parent::getResponseNegotiator();
         $controller = $this;
@@ -421,10 +423,10 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @param array $data
-     * @param \SilverStripe\Forms\Form $form
+     * @param Form $form
      * @return mixed
      */
-    public function save($data, $form)
+    public function save(array $data, Form $form) : HTTPResponse
     {
         $currentStage = Versioned::get_stage();
         Versioned::set_stage(Versioned::DRAFT);
@@ -574,13 +576,15 @@ class SinglePageAdmin extends LeftAndMain implements PermissionProvider
             'EditForm' => $form,
         ])->renderWith($this->getTemplatesWithSuffix('_Content'));
 
+        $response = $this->getResponse();
         if ($request->isAjax()) {
-            return $return;
+            $response->setBody($return);
         } else {
-            return $controller->customise([
+            $response->setBody($controller->customise([
                 'Content' => $return,
-            ]);
+            ]));
         }
+        return $response;
     }
 
     /**
